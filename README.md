@@ -1,4 +1,4 @@
 # job-hunting
-Job hunting made easier with Python tools and API
+Job hunting made easier with Python tools and HeadHunter API
 
-~~~ the manual will be updated soon ~~~
+Project description will be added soon (｡◕‿‿◕｡)
