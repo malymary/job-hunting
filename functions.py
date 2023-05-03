@@ -20,8 +20,8 @@ def dump_json(obj, filename):
             
 '''✨🐳✨🐬✨🐟✨🐠✨🐳✨🐬✨🐟✨🐠✨🐳✨🐬✨🐟✨🐠✨🐳✨🐬✨🐟✨🐠✨'''          
             
-'''Функция для парсинга вакансий с сайта hh.ru'''
-'''Parse vacancies at hh.ru'''
+'''Функция для сбора вакансий с сайта hh.ru'''
+'''Collect vacancies at hh.ru'''
 
 def get_vacancies(page = config.PAGE,
     per_page = config.PER_PAGE,
