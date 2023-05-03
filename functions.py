@@ -1,13 +1,17 @@
 import time
 import json
 import requests
+from IPython.display import display, clear_output
 import tqdm
+import tqdm.notebook
+
+import bs4
 import pandas as pd
 from collections import Counter
-from IPython.display import display, clear_output
 from wordcloud import WordCloud
+from natasha import Doc, MorphVocab, NewsEmbedding, NewsMorphTagger, Segmenter
+from sklearn.feature_extraction.text import TfidfVectorizer
 import matplotlib.pyplot as plt
-import pandas as pd
 import config
 
 '''Функция для сохранения JSON-файла в рабочую папку'''
@@ -143,3 +147,76 @@ def make_cloud(frequencies):
     my_image = cloud.generate_from_frequencies(frequencies=frequencies).to_image()
     display(my_image)
     my_image.save(f'top_skill_wordcloud.png')
+
+
+'''✨🐳✨🐬✨🐟✨🐠✨🐳✨🐬✨🐟✨🐠✨🐳✨🐬✨🐟✨🐠✨🐳✨🐬✨🐟✨🐠✨'''
+
+def preprocess(text):
+    """Функция для предварительной обработки текста одной вакансии:
+    '<p><strong>Кого мы ищем:</strong><br/>Junior Backend разработчика, готового работать в команде.</p> <p><strong>'
+     ↓ ↓ ↓
+    'искать junior backend разработчик готовый работать команда'
+    """
+    parsed_html = bs4.BeautifulSoup(text)
+    text = parsed_html.text  # удалили тэги
+
+    morph_vocab = MorphVocab()
+    segmenter = Segmenter()
+    embedding = NewsEmbedding()
+    morph_tagger = NewsMorphTagger(embedding)
+    doc = Doc(text)
+    doc.segment(segmenter)
+    doc.tag_morph(morph_tagger)
+
+    words = []
+
+    for token in doc.tokens:
+        # Если часть речи не входит в список: [знак пунктуации, предлог, союз, местоимение], выполняем:
+        if token.pos not in ['PUNCT', 'ADP', 'CCONJ', 'PRON']:
+            # Преобразуем к нормальной форме 'способов' -> 'способ'
+            token.lemmatize(morph_vocab)
+            # Добавляем в общий список
+            words.append(token.lemma)
+
+    # Объединяем список элементов в одну строку через пробел
+    # ['обязанность', 'писать',  'код'] -> 'обязанность писать код'
+    line = ' '.join(words)
+
+    return line
+
+
+'''✨🐳✨🐬✨🐟✨🐠✨🐳✨🐬✨🐟✨🐠✨🐳✨🐬✨🐟✨🐠✨🐳✨🐬✨🐟✨🐠✨'''
+
+def preprocess_all(document_collection):
+    """Функция для обработки всех вакансий. На вход функция получает список с описаниями.
+    Работает до получаса!
+    """
+    preprocessed = []
+    for vacancy in tqdm.tqdm(vacancies_df['description']):
+        preprocessed.append(preprocess(vacancy))
+
+    dump_json(preprocessed, 'preprocessed.json')
+
+    return preprocessed
+
+
+def get_tf_idf_weights(preprocessed):
+    """Эта функция получает на вход подготовленные тексты вида 
+    'искать junior backend разработчик готовый работать команда'
+    и составляет по ним словарь весов ключевых слов: 
+    {'искать': 0.54, 'junior': 0.73, ...}
+    """
+    vectorizer = TfidfVectorizer(ngram_range=(1, 2))
+    #  Обучаем объект векторизатора (функции, кодирующий текст в виде последовательностей чисел)
+    vectorizer.fit(preprocessed)
+
+    tf_idf_words = vectorizer.get_feature_names_out()
+    tf_idf_table = vectorizer.transform(preprocessed).toarray()
+    weights = tf_idf_table.sum(axis=0)
+    indices_order = weights.argsort()[::-1]
+
+    tf_idf_words[indices_order]
+
+    frequencies = dict(zip(tf_idf_words, weights))
+
+    return frequencies
