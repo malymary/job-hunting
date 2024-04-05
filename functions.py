@@ -15,16 +15,12 @@ import matplotlib.pyplot as plt
 import config
 
 '''Функция для сохранения JSON-файла в рабочую папку'''
-'''Save JSON file to the working directory'''
-
 def dump_json(obj, filename):
         with open(filename, 'w', encoding='UTF-8') as f: 
             json.dump(obj, f, ensure_ascii=False, indent=4)
-
+                
             
 '''Функция для сбора вакансий с сайта hh.ru'''
-'''Collect vacancies at hh.ru'''
-
 def get_vacancies(page = config.PAGE,
     per_page = config.PER_PAGE,
     period = config.PERIOD,
@@ -71,8 +67,6 @@ def get_vacancies(page = config.PAGE,
 
 
 '''Функция для получения файла с описаниями вакансий (примерно 100 вакансий в минуту)'''
-'''Get a new file with job descriptions (around 100 descriptions per min)'''
-
 def get_full_descriptions(vacancies):
     vacancies_full = []
     for entry in tqdm.tqdm(vacancies):
@@ -87,8 +81,6 @@ def get_full_descriptions(vacancies):
 
 
 '''Функция для скачивания существующего файла c описаниями вакансий c Гугл Диска'''
-'''Download an existing file with job descriptions from Google Drive'''
-
 def load_from_gdrive(file_id, filename):
     url = f'https://drive.google.com/uc?export=view&id={file_id}'
     res = requests.get(url)
@@ -98,16 +90,12 @@ def load_from_gdrive(file_id, filename):
 
 
 '''Функция для открытия существующего локального файла c описаниями вакансий'''
-'''Open an existing local file with job descriptions'''
-
 def load_from_device(file_path):
     with open(f'{file_path}', encoding='utf8') as f: vacancies_full = json.load(f)
     return vacancies_full
 
 
 '''Составить список ключевых навыков, отсортированных по популярности'''
-'''Make a list of key skills sorted by frequency'''
-
 def sort_skills_by_freq(vacancies_full):
     all_skills = []
     for vacancy in vacancies_full:
@@ -127,8 +115,6 @@ def sort_skills_by_freq(vacancies_full):
         
 
 '''Отобразить и сохранить вордклауд с ключевыми навыками'''
-'''Display and save key skills as a wordcloud'''
-    
 def make_cloud(frequencies):
     print(f'Топ навыков для позиции {config.TEXT}:')
     cloud = WordCloud(background_color='black', width=800, height=600, color_func=lambda *args, **kwargs: "white")
@@ -137,12 +123,13 @@ def make_cloud(frequencies):
     my_image.save(f'top_skill_wordcloud.png')
 
 
+"""
+Функция для предварительной обработки текста одной вакансии:
+'<p><strong>Кого мы ищем:</strong><br/>Junior Backend разработчика, готового работать в команде.</p> <p><strong>'
+↓ ↓ ↓
+'искать junior backend разработчик готовый работать команда'
+"""
 def preprocess(text):
-    """Функция для предварительной обработки текста одной вакансии:
-    '<p><strong>Кого мы ищем:</strong><br/>Junior Backend разработчика, готового работать в команде.</p> <p><strong>'
-     ↓ ↓ ↓
-    'искать junior backend разработчик готовый работать команда'
-    """
     parsed_html = bs4.BeautifulSoup(text)
     text = parsed_html.text  # удалили тэги
 
@@ -170,11 +157,12 @@ def preprocess(text):
 
     return line
 
-        
+
+"""
+Функция для обработки всех вакансий. На вход функция получает список с описаниями.
+Работает до получаса!
+"""
 def preprocess_all(document_collection):
-    """Функция для обработки всех вакансий. На вход функция получает список с описаниями.
-    Работает до получаса!
-    """
     preprocessed = []
     for vacancy in tqdm.tqdm(vacancies_df['description']):
         preprocessed.append(preprocess(vacancy))
@@ -183,13 +171,13 @@ def preprocess_all(document_collection):
 
     return preprocessed
 
-
+"""
+Эта функция получает на вход подготовленные тексты вида 
+'искать junior backend разработчик готовый работать команда'
+и составляет по ним словарь весов ключевых слов: 
+{'искать': 0.54, 'junior': 0.73, ...}
+"""
 def get_tf_idf_weights(preprocessed):
-    """Эта функция получает на вход подготовленные тексты вида 
-    'искать junior backend разработчик готовый работать команда'
-    и составляет по ним словарь весов ключевых слов: 
-    {'искать': 0.54, 'junior': 0.73, ...}
-    """
     vectorizer = TfidfVectorizer(ngram_range=(1, 2))
     #  Обучаем объект векторизатора (функции, кодирующий текст в виде последовательностей чисел)
     vectorizer.fit(preprocessed)
