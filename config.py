@@ -1,4 +1,4 @@
-'''https://api.hh.ru/dictionaries'''
+'''Refer to: https://api.hh.ru/dictionaries'''
 
 # должность, профессия
 TEXT = 'Архитектор'
